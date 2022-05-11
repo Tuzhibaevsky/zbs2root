@@ -25,11 +25,14 @@ extern "C" {
   void skroot_init_(int*);
   void kzinit_();
   void set_rflist_(int*, const char*, const char*, const char*, const char*,
-      const char*, const char*, const char*, const char*, const char*,
-      int, int, int, int, int, int, int, int, int);
+		   const char*, const char*, const char*, const char*, const char*,
+		   int, int, int, int, int, int, int, int, int);
   void skopenf_(int*, int*, const char*, int*);
   void skclosef_(int*);
 }
+
+#include <TFile.h>
+#include <TTree.h>
 
 int main(int argc, char *argv[])
 {
@@ -61,43 +64,73 @@ int main(int argc, char *argv[])
   int eventID = 0;
   bool bEOF = false;
 
+  // Save as TTree
+  TFile OutF("out.root", "RECREATE");
+  TTree OutT("T","T");
+  std::vector<Int_t> I; std::vector<Double_t> T, Q, X, Y, Z;
+  OutT.Branch("ID", &I);
+  OutT.Branch("T", &T);
+  OutT.Branch("Q", &Q);
+  OutT.Branch("X", &X);
+  OutT.Branch("Y", &Y);
+  OutT.Branch("Z", &Z);
+
+
   while (!bEOF) {
 
     readStatus = skread_(&lun);
 
     switch (readStatus) {
     case 0: // event read                                               
-      eventID++;
-      std::cout << " run " << skhead_.nrunsk
-		<< " sub " << skhead_.nsubsk
-		<< " ev  " << skhead_.nevsk
-		<< std::endl;
-      std::cout << " NQISK  " << skq_.nqisk
-		<< " QISMSK " << skq_.qismsk
-		<< std::endl;
-
-      for (int i=0; i<skq_.nqisk; i++){
-	int icab = skchnl_.ihcab[i];
-	std::cout << "ID hit: " << i << ": "
-		  << icab << " "
-		  << skt_.tisk[icab-1] << " "
-		  << skq_.qisk[icab-1] << " "
-	          << geopmt_.xyzpm[icab-1][0] << " " 
-	          << geopmt_.xyzpm[icab-1][1] << " " 
-	          << geopmt_.xyzpm[icab-1][2] << " " 
+      {
+	eventID++;
+	std::cout << " run " << skhead_.nrunsk
+		  << " sub " << skhead_.nsubsk
+		  << " ev  " << skhead_.nevsk
 		  << std::endl;
+	std::cout << " NQISK  " << skq_.nqisk
+		  << " QISMSK " << skq_.qismsk
+		  << std::endl;
+
+	const auto NQISK = skq_.nqisk;
+
+	I.clear();
+	T.clear();
+	Q.clear();
+	X.clear();
+	Y.clear();
+	Z.clear();
+
+	for (int i=0; i<NQISK; i++){
+	  int icab = skchnl_.ihcab[i];
+	  I.emplace_back(icab);
+	  T.emplace_back(skt_.tisk[icab-1]);
+	  Q.emplace_back(skq_.qisk[icab-1]);
+	  X.emplace_back(geopmt_.xyzpm[icab-1][0]);
+	  Y.emplace_back(geopmt_.xyzpm[icab-1][1]);
+	  Z.emplace_back(geopmt_.xyzpm[icab-1][2]);
+	}
+
+	OutT.Fill();
+	break;
       }
-
-      std::cout << " " << std::endl; 
-      break;
-
     case 1: // read-error
-      break;
-
+      {
+	break;
+      }
     case 2: // end of input
+      {
       skclosef_(&lun);
       bEOF = true;
       break;
-    }
-  }
+      }
+    } // END SWITCH
+
+  } // END WHILE EOF
+
+  OutT.Write();
+  OutF.Close();
+
+  return EXIT_SUCCESS;
+
 }
