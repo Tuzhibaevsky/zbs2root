@@ -1,7 +1,6 @@
 //
 // sample.cc     27-DEC-2011     Y.Koshio
 //
-//
 
 #include <string>
 #include <sstream>
@@ -36,8 +35,8 @@ extern "C" {
 
 int main(int argc, char *argv[])
 {
-  if(argc < 2) {
-    printf("Usage: sample input.root\n");
+  if(argc < 3) {
+    printf("Usage: sample input.root output.root\n");
     exit(0);
   }
 
@@ -65,7 +64,7 @@ int main(int argc, char *argv[])
   bool bEOF = false;
 
   // Save as TTree
-  TFile OutF("out.root", "RECREATE");
+  TFile OutF(argv[2], "RECREATE");
   TTree OutT("T","T");
   std::vector<Int_t> I; std::vector<Double_t> T, Q, X, Y, Z;
   OutT.Branch("ID", &I);
